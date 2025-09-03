@@ -1,0 +1,19 @@
+fastapi==0.112.1
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pydantic==2.8.2
+pillow==10.4.0
+numpy==2.0.1
+pymupdf==1.24.9 # for extracting text from PDFs you ingest into the KB
+pdfminer.six==20231228 # optional PDF text extractor
+pytesseract==0.3.10 # optional local OCR (requires system tesseract-ocr)
+openai==1.40.6 # official OpenAI SDK (compatible with A4F)
+python-dotenv==1.0.1
+scikit-learn==1.5.1 # cosine similarity
+// Add to backend: requirements.txt
+fastapi-users[sqlalchemy]
+python-jose[cryptography]
+passlib[bcrypt]
+
+// Create auth system with JWT tokens
+// Add user registration/login endpoints
