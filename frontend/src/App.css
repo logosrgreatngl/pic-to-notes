@@ -1,0 +1,18 @@
+/* Additional app-specific styles */
+.animate-bounce {
+  animation: bounce 0.6s infinite;
+}
+
+/* Focus styles */
+input:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
+/* Transition classes */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
