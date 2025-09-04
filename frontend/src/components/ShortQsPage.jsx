@@ -9,10 +9,10 @@ function ShortQsPage() {
 
   if (!notesData.shortQuestions || notesData.shortQuestions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center justify-center h-64 sm:h-96">
         <div className="text-center">
-          <span className="material-symbols-outlined text-6xl text-gray-600 mb-4">help_outline</span>
-          <p className="text-xl text-gray-400">No short questions available yet</p>
+          <span className="material-symbols-outlined text-5xl sm:text-6xl text-gray-600 mb-4">help_outline</span>
+          <p className="text-lg sm:text-xl text-gray-400">No short questions available yet</p>
           <p className="text-sm text-gray-500 mt-2">Upload an image or PDF to generate questions</p>
         </div>
       </div>
@@ -20,8 +20,8 @@ function ShortQsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Short Answer Questions</h2>
+    <div className="space-y-4 sm:space-y-6">
+      <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Short Answer Questions</h2>
       
       {notesData.shortQuestions.map((sq, index) => {
         // Handle both 'question' and 'q' field names
@@ -33,8 +33,8 @@ function ShortQsPage() {
 
         return (
           <details key={index} className="group bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out">
-            <summary className="flex items-center justify-between p-6 cursor-pointer">
-              <h3 className="text-xl font-semibold">
+            <summary className="flex items-center justify-between p-4 sm:p-6 cursor-pointer tap-target">
+              <h3 className="text-base sm:text-xl font-semibold flex-1 pr-4 break-words">
                 <span className="text-yellow-400 mr-2">Q{index + 1}.</span>
                 {question}
               </h3>
@@ -42,8 +42,8 @@ function ShortQsPage() {
                 expand_more
               </span>
             </summary>
-            <div className="px-6 pb-6 pt-0">
-              <p className="text-gray-300 leading-relaxed">{answer}</p>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
+              <p className="text-gray-300 leading-relaxed text-sm sm:text-base break-words">{answer}</p>
             </div>
           </details>
         );

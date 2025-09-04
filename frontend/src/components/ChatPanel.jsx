@@ -86,33 +86,33 @@ function ChatPanel() {
   };
 
   return (
-    <aside className="flex flex-col w-[360px] bg-gray-800/60 rounded-2xl shadow-xl">
+    <aside className="flex flex-col w-full lg:w-[360px] bg-gray-800/60 rounded-2xl shadow-xl h-full lg:h-auto">
       <div className="border-b border-gray-700 p-4">
         <h3 className="text-lg font-bold leading-tight tracking-tight text-white">Study Assistant</h3>
       </div>
       
-      <div className="flex-1 space-y-6 overflow-y-auto p-4">
+      <div className="flex-1 space-y-4 sm:space-y-6 overflow-y-auto p-4 max-h-[60vh] lg:max-h-[70vh]">
         {messages.map((message) => (
           <div key={message.id} className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full w-9 shrink-0 ${
+            <div className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 h-8 sm:w-9 sm:h-9 shrink-0 ${
               message.type === 'system' || message.type === 'ai' ? 'bg-gray-700' : ''
             }`}>
               {(message.type === 'system' || message.type === 'ai') && (
-                <div className="w-9 h-9 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-gray-400 text-xl">school</span>
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-gray-400 text-lg sm:text-xl">school</span>
                 </div>
               )}
               {message.type === 'user' && (
-                <div className="w-9 h-9 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <span className="text-gray-900 font-bold text-sm">U</span>
+                <div className="w-full h-full bg-yellow-400 rounded-full flex items-center justify-center">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm">U</span>
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-1.5 max-w-[80%]">
-              <p className="text-sm font-medium text-gray-400">
+            <div className="flex flex-col gap-1.5 max-w-[80%] sm:max-w-[85%]">
+              <p className="text-xs sm:text-sm font-medium text-gray-400">
                 {message.type === 'system' || message.type === 'ai' ? 'Study Assistant' : 'You'}
               </p>
-              <div className={`rounded-xl px-4 py-2.5 text-base font-normal leading-normal ${
+              <div className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-normal leading-normal break-words ${
                 message.type === 'user' 
                   ? 'bg-yellow-400 text-gray-900 rounded-tr-none' 
                   : 'bg-gray-700 text-white rounded-tl-none'
@@ -124,12 +124,12 @@ function ChatPanel() {
         ))}
         {isLoading && (
           <div className="flex items-start gap-3">
-            <div className="bg-gray-700 rounded-full w-9 h-9 flex items-center justify-center">
-              <span className="material-symbols-outlined text-gray-400 text-xl">school</span>
+            <div className="bg-gray-700 rounded-full w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
+              <span className="material-symbols-outlined text-gray-400 text-lg sm:text-xl">school</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium text-gray-400">Study Assistant</p>
-              <div className="bg-gray-700 rounded-xl rounded-tl-none px-4 py-2.5">
+              <p className="text-xs sm:text-sm font-medium text-gray-400">Study Assistant</p>
+              <div className="bg-gray-700 rounded-xl rounded-tl-none px-3 sm:px-4 py-2 sm:py-2.5">
                 <div className="flex space-x-2">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
@@ -145,7 +145,7 @@ function ChatPanel() {
       <div className="border-t border-gray-700 p-4">
         <div className="relative">
           <input 
-            className="form-input w-full resize-none rounded-xl border-none bg-gray-700 py-3 pl-4 pr-12 text-base text-white placeholder:text-gray-400 focus:ring-2 focus:ring-yellow-400"
+            className="form-input w-full resize-none rounded-xl border-none bg-gray-700 py-3 pl-4 pr-12 text-sm sm:text-base text-white placeholder:text-gray-400 focus:ring-2 focus:ring-yellow-400"
             placeholder="Ask about your study material..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
@@ -153,7 +153,7 @@ function ChatPanel() {
             disabled={isLoading}
           />
           <button 
-            className="absolute inset-y-0 right-0 flex items-center justify-center px-4 text-gray-400 hover:text-yellow-400 transition-colors duration-200 disabled:opacity-50"
+            className="absolute inset-y-0 right-0 flex items-center justify-center px-4 text-gray-400 hover:text-yellow-400 transition-colors duration-200 disabled:opacity-50 tap-target"
             onClick={sendMessage}
             disabled={isLoading || !inputMessage.trim()}
           >

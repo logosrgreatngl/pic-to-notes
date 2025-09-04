@@ -67,10 +67,10 @@ function NotesPage() {
 
   if (!notesData.notes || notesData.notes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center justify-center h-64 sm:h-96">
         <div className="text-center">
-          <span className="material-symbols-outlined text-6xl text-gray-600 mb-4">description</span>
-          <p className="text-xl text-gray-400">No notes available yet</p>
+          <span className="material-symbols-outlined text-5xl sm:text-6xl text-gray-600 mb-4">description</span>
+          <p className="text-lg sm:text-xl text-gray-400">No notes available yet</p>
           <p className="text-sm text-gray-500 mt-2">Upload an image or PDF to generate notes</p>
         </div>
       </div>
@@ -79,11 +79,12 @@ function NotesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      {/* Mobile-responsive header controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex gap-2">
           <button 
             onClick={() => setViewMode('readable')}
-            className={`text-sm font-medium px-4 py-2 rounded-lg border transition-colors ${
+            className={`text-sm font-medium px-4 py-2 rounded-lg border transition-colors tap-target ${
               viewMode === 'readable' 
                 ? 'bg-gray-800 border-gray-700' 
                 : 'border-transparent hover:bg-gray-800'
@@ -93,7 +94,7 @@ function NotesPage() {
           </button>
           <button 
             onClick={() => setViewMode('compact')}
-            className={`text-sm font-medium px-4 py-2 rounded-lg ml-2 transition-colors ${
+            className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors tap-target ${
               viewMode === 'compact' 
                 ? 'bg-gray-800 border-gray-700' 
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -102,17 +103,17 @@ function NotesPage() {
             Compact
           </button>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <button 
             onClick={copyToClipboard}
-            className="flex items-center gap-2 min-w-[84px] cursor-pointer justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-800 border border-gray-700 text-white text-sm font-bold hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-2 justify-center rounded-lg h-12 sm:h-10 px-4 bg-gray-800 border border-gray-700 text-white text-sm font-bold hover:bg-gray-700 transition-colors tap-target"
           >
             <span className="material-symbols-outlined text-base">content_copy</span>
             <span>{copied ? 'Copied!' : 'Copy'}</span>
           </button>
           <button 
             onClick={downloadMarkdown}
-            className="flex items-center gap-2 min-w-[84px] cursor-pointer justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-800 border border-gray-700 text-white text-sm font-bold hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-2 justify-center rounded-lg h-12 sm:h-10 px-4 bg-yellow-400 text-gray-900 text-sm font-bold hover:bg-yellow-500 transition-colors tap-target"
           >
             <span className="material-symbols-outlined text-base">download</span>
             <span>Save Notes</span>
@@ -120,32 +121,32 @@ function NotesPage() {
         </div>
       </div>
 
-      <div className={`${viewMode === 'compact' ? 'space-y-4' : 'space-y-8'}`}>
+      <div className={`${viewMode === 'compact' ? 'space-y-4' : 'space-y-6 sm:space-y-8'}`}>
         {notesData.notes.map((note, index) => {
           const title = note.title || note.heading || `Section ${index + 1}`;
           const points = note.points || note.content || [];
           
           return (
-            <div key={index} className={`bg-gray-800 rounded-2xl shadow-lg ${viewMode === 'compact' ? 'p-4' : 'p-6'} space-y-4`}>
-              <h3 className={`${viewMode === 'compact' ? 'text-lg' : 'text-xl'} font-bold text-yellow-400`}>
+            <div key={index} className={`bg-gray-800 rounded-2xl shadow-lg ${viewMode === 'compact' ? 'p-4' : 'p-4 sm:p-6'} space-y-4`}>
+              <h3 className={`${viewMode === 'compact' ? 'text-lg' : 'text-lg sm:text-xl'} font-bold text-yellow-400 break-words`}>
                 {title}
               </h3>
               
               {/* Main definition/concept if it's the first point */}
               {points.length > 0 && !points[0].endsWith(':') && !points[0].startsWith('•') && (
-                <p className="text-gray-300 italic border-l-4 border-yellow-400/30 pl-4 mb-4">
+                <p className="text-gray-300 italic border-l-4 border-yellow-400/30 pl-4 mb-4 text-sm sm:text-base">
                   {points[0]}
                 </p>
               )}
               
-              <ul className={`list-disc list-inside ${viewMode === 'compact' ? 'space-y-1 text-sm' : 'space-y-2'} pl-2`}>
+              <ul className={`list-disc list-inside ${viewMode === 'compact' ? 'space-y-1 text-sm' : 'space-y-2 text-sm sm:text-base'} pl-2`}>
                 {points.slice(points[0] && !points[0].endsWith(':') && !points[0].startsWith('•') ? 1 : 0).map((point, pIndex) => 
                   renderPoint(point, pIndex)
                 )}
               </ul>
               
               {note.images && note.images.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   {note.images.map((img, imgIndex) => (
                     <img 
                       key={imgIndex}

@@ -15,6 +15,8 @@ body {
   padding: 0;
   background-color: #111827;
   color: #f3f4f6;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Custom scrollbar */
@@ -52,5 +54,39 @@ body {
   }
   50% {
     transform: translateY(-4px);
+  }
+}
+
+/* Mobile-friendly touch targets */
+@media (max-width: 768px) {
+  button, .cursor-pointer {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better scrolling on mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide scrollbars on mobile for cleaner look */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Improve tap targets */
+  .tap-target {
+    padding: 12px;
+  }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 640px) {
+  .mobile-stack {
+    flex-direction: column;
+  }
+  
+  .mobile-full-width {
+    width: 100%;
   }
 }

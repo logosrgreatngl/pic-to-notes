@@ -66,6 +66,8 @@ function UploadPage({ onFileUploaded, onUploadComplete, onUploadStart }) {
         });
       }, 200);
 
+      console.log('API URL:', `${API_BASE_URL}/notes-from-image`);
+
       const response = await fetch(`${API_BASE_URL}/notes-from-image`, {
         method: 'POST',
         body: formData,
@@ -79,15 +81,26 @@ function UploadPage({ onFileUploaded, onUploadComplete, onUploadStart }) {
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
+      
       setStrategy(data.strategy || 'unknown');
       
       // Parse the notes_md JSON string - matching YOUR backend schema
       let parsedNotes;
       try {
         parsedNotes = JSON.parse(data.notes_md);
+        console.log('Parsed notes:', parsedNotes);
       } catch (e) {
         console.error('Failed to parse notes:', e);
-        parsedNotes = { notes: [], mcqs: [], shortQuestions: [] };
+        // Handle raw text response (fallback mode)
+        parsedNotes = {
+          notes: [{
+            heading: "Extracted Text",
+            points: data.notes_md ? data.notes_md.split('\n').filter(line => line.trim()) : []
+          }],
+          mcqs: [],
+             shortQuestions: []
+        };
       }
 
       // Transform backend schema to frontend format
@@ -102,6 +115,9 @@ function UploadPage({ onFileUploaded, onUploadComplete, onUploadStart }) {
         correctAnswer: mcq.answer || '',
         correctIndex: mcq.options ? mcq.options.indexOf(mcq.answer) : -1
       })) : [];
+
+      console.log('Transformed notes:', transformedNotes);
+      console.log('Transformed MCQs:', transformedMCQs);
 
       setNotesData({
         notes: transformedNotes,
@@ -141,11 +157,11 @@ function UploadPage({ onFileUploaded, onUploadComplete, onUploadStart }) {
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8">
       <div>
-        <h1 className="text-4xl font-bold leading-tight tracking-tight text-white">Upload your files</h1>
-        <p className="text-gray-400 text-lg mt-2">
-          Drag and drop your files here, or select files from your computer. Supported formats: PNG, JPG, PDF.
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight tracking-tight text-white">Upload your files</h1>
+        <p className="text-gray-400 text-base sm:text-lg mt-2">
+          Drag and drop your files here, or tap to select files. Supported formats: PNG, JPG, PDF.
         </p>
       </div>
 
@@ -156,7 +172,7 @@ function UploadPage({ onFileUploaded, onUploadComplete, onUploadStart }) {
       )}
 
       <div 
-        className="flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-dashed border-gray-700 bg-gray-900/50 p-16 shadow-inner cursor-pointer"
+        className="flex flex-col items-center justify-center gap-4 sm:gap-6 rounded-2xl border-2 border-dashed border-gray-700 bg-gray-900/50 p-8 sm:p-12 lg:p-16 shadow-inner cursor-pointer min-h-[250px] sm:min-h-[300px] transition-colors hover:border-gray-600"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onClick={() => !uploading && document.getElementById('fileInput').click()}
@@ -169,24 +185,25 @@ function UploadPage({ onFileUploaded, onUploadComplete, onUploadStart }) {
           onChange={handleFileSelect}
           disabled={uploading}
         />
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="material-symbols-outlined text-5xl text-gray-500">cloud_upload</span>
-          <p className="text-xl font-bold leading-tight tracking-tight text-white">
-            {file ? file.name : 'Drag and drop files here'}
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="material-symbols-outlined text-4xl sm:text-5xl text-gray-500">cloud_upload</span>
+          <p className="text-lg sm:text-xl font-bold leading-tight tracking-tight text-white">
+            {file ? file.name : 'Tap to upload or drag files here'}
           </p>
-          <p className="text-gray-400">or</p>
+          <p className="text-gray-400 text-sm sm:text-base">PNG, JPG, or PDF files</p>
           <button 
-            className="mt-2 flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-6 bg-gray-700 text-white text-base font-bold leading-normal tracking-[-0.01em] hover:bg-gray-600 transition-colors duration-200"
+            className="mt-2 flex items-center justify-center gap-2 min-w-[140px] cursor-pointer rounded-xl h-12 px-6 bg-yellow-400 text-gray-900 text-base font-bold hover:bg-yellow-500 transition-colors duration-200 tap-target"
             disabled={uploading}
             type="button"
           >
-            <span className="truncate">Select Files</span>
+            <span className="material-symbols-outlined">upload</span>
+            <span className="truncate">Choose File</span>
           </button>
         </div>
       </div>
 
       {uploading && (
-        <div className="flex flex-col gap-4 rounded-2xl bg-gray-800/60 p-6 shadow-lg">
+        <div className="flex flex-col gap-4 rounded-2xl bg-gray-800/60 p-4 sm:p-6 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="relative flex h-5 w-5 items-center justify-center">
               <div className="absolute h-full w-full animate-spin rounded-full border-2 border-dashed border-yellow-400"></div>

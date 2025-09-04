@@ -12,10 +12,12 @@ function App() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const handleTabChange = (tab) => {
     if (!isUploading) {
       setActiveTab(tab);
+      setShowChat(false); // Close chat when switching tabs on mobile
     }
   };
 
@@ -44,74 +46,115 @@ function App() {
 
   return (
     <NotesProvider>
-      <div className="relative flex size-full min-h-screen flex-col group/design-root overflow-x-hidden bg-gray-900 text-gray-100">
+      <div className="relative flex size-full min-h-screen flex-col bg-gray-900 text-gray-100">
         <div className="flex h-full grow flex-col">
-          <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-800 px-10 py-4">
-            <div className="flex items-center gap-4 text-white">
-              <svg className="size-6 text-yellow-400" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          {/* Mobile-friendly header */}
+          <header className="flex items-center justify-between border-b border-solid border-gray-800 px-4 sm:px-10 py-4">
+            <div className="flex items-center gap-2 sm:gap-4 text-white">
+              <svg className="size-5 sm:size-6 text-yellow-400" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                 <path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z" fill="currentColor"></path>
               </svg>
-              <h2 className="text-xl font-bold tracking-[-0.015em]">Pic-to-Notes</h2>
+              <h2 className="text-lg sm:text-xl font-bold tracking-[-0.015em]">Pic-to-Notes</h2>
             </div>
-            <nav className="flex flex-1 justify-center gap-2">
-              <a 
-                className={`px-4 py-2 text-sm font-medium leading-normal cursor-pointer ${
-                  activeTab === 'upload' 
-                    ? 'relative text-yellow-400 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-yellow-400' 
-                    : 'text-gray-400 hover:text-white transition-colors duration-200'
-                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleTabChange('upload')}
-              >
-                Upload
-              </a>
-              <a 
-                className={`px-4 py-2 text-sm font-medium leading-normal cursor-pointer ${
-                  activeTab === 'notes' 
-                    ? 'relative text-yellow-400 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-yellow-400' 
-                    : 'text-gray-400 hover:text-white transition-colors duration-200'
-                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleTabChange('notes')}
-              >
-                Notes
-              </a>
-              <a 
-                className={`px-4 py-2 text-sm font-medium leading-normal cursor-pointer ${
-                  activeTab === 'mcqs' 
-                    ? 'relative text-yellow-400 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-yellow-400' 
-                    : 'text-gray-400 hover:text-white transition-colors duration-200'
-                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleTabChange('mcqs')}
-              >
-                MCQs
-              </a>
-              <a 
-                className={`px-4 py-2 text-sm font-medium leading-normal cursor-pointer ${
-                  activeTab === 'shortqs' 
-                    ? 'relative text-yellow-400 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-yellow-400' 
-                    : 'text-gray-400 hover:text-white transition-colors duration-200'
-                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleTabChange('shortqs')}
-              >
-                Short Qs
-              </a>
-            </nav>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => handleTabChange('upload')}
-                disabled={isUploading}
-                className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-5 bg-yellow-400 text-gray-900 text-sm font-bold leading-normal tracking-[-0.01em] shadow-lg shadow-yellow-400/10 hover:bg-yellow-500 transition-colors duration-200 ${
-                  isUploading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <span className="truncate">Upload</span>
-              </button>
-            </div>
+            
+            {/* Mobile chat toggle */}
+            <button 
+              onClick={() => setShowChat(!showChat)}
+              className="lg:hidden flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+            >
+              <span className="material-symbols-outlined text-lg">chat</span>
+              <span className="hidden sm:inline">Chat</span>
+            </button>
+            
+            {/* Desktop upload button */}
+            <button 
+              onClick={() => handleTabChange('upload')}
+              disabled={isUploading}
+              className={`hidden lg:flex min-w-[84px] cursor-pointer items-center justify-center rounded-xl h-10 px-5 bg-yellow-400 text-gray-900 text-sm font-bold transition-colors duration-200 ${
+                isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-yellow-500'
+              }`}
+            >
+              <span className="truncate">Upload</span>
+            </button>
           </header>
-          <main className="flex flex-1 p-8">
-            <div className="flex-1 pr-8">
+
+          {/* Mobile navigation */}
+          <nav className="lg:hidden flex overflow-x-auto border-b border-gray-800 px-2 bg-gray-800/50">
+            {[
+              { key: 'upload', label: 'Upload', icon: 'upload' },
+              { key: 'notes', label: 'Notes', icon: 'description' },
+              { key: 'mcqs', label: 'MCQs', icon: 'quiz' },
+              { key: 'shortqs', label: 'Short Qs', icon: 'help_outline' }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                className={`flex flex-col items-center gap-1 px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                  activeTab === tab.key 
+                    ? 'text-yellow-400 border-b-2 border-yellow-400' 
+                    : 'text-gray-400 hover:text-white'
+                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => handleTabChange(tab.key)}
+                disabled={isUploading}
+              >
+                <span className="material-symbols-outlined text-lg">{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          {/* Desktop navigation */}
+          <nav className="hidden lg:flex flex-1 justify-center gap-2 border-b border-gray-800 px-10 py-2">
+            {[
+              { key: 'upload', label: 'Upload' },
+              { key: 'notes', label: 'Notes' },
+              { key: 'mcqs', label: 'MCQs' },
+              { key: 'shortqs', label: 'Short Qs' }
+            ].map(tab => (
+              <a
+                key={tab.key}
+                className={`px-4 py-2 text-sm font-medium leading-normal cursor-pointer transition-colors duration-200 ${
+                  activeTab === tab.key 
+                    ? 'relative text-yellow-400 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-yellow-400' 
+                    : 'text-gray-400 hover:text-white'
+                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => handleTabChange(tab.key)}
+              >
+                {tab.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Main content area */}
+          <main className="flex flex-1 relative">
+            {/* Page content */}
+            <div className="flex-1 p-4 sm:p-6 lg:p-8 lg:pr-8">
               {renderPage()}
             </div>
-            <ChatPanel />
+            
+            {/* Desktop chat panel */}
+            <div className="hidden lg:block">
+              <ChatPanel />
+            </div>
+            
+            {/* Mobile chat overlay */}
+            {showChat && (
+              <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setShowChat(false)}>
+                <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-gray-900 shadow-xl" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                    <h3 className="text-lg font-bold">Study Assistant</h3>
+                    <button 
+                      onClick={() => setShowChat(false)}
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div className="h-full overflow-hidden">
+                    <ChatPanel />
+                  </div>
+                </div>
+              </div>
+            )}
           </main>
         </div>
       </div>
