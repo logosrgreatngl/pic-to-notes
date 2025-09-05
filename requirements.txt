@@ -13,3 +13,4 @@ scikit-learn==1.5.1
 fastapi-users[sqlalchemy]
 python-jose[cryptography]
 passlib[bcrypt]
+httpx==0.25.2

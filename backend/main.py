@@ -11,7 +11,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 from backend.rag_store import SimpleRAG
-from prompts import SYSTEM_NOTE_TAKING, USER_NOTE_TAKING
+from backend.prompts import SYSTEM_NOTE_TAKING, USER_NOTE_TAKING
 
 # ---------------------------------------------------------
 # Init App + CORS
