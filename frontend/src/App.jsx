@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NotesProvider } from './NotesContext';
 import UploadPage from './components/UploadPage';
 import NotesPage from './components/NotesPage';
 import MCQsPage from './components/MCQsPage';
 import ShortQsPage from './components/ShortQsPage';
 import ChatPanel from './components/ChatPanel';
+import { API_BASE_URL } from './config';
 import './App.css';
 
 function App() {
@@ -13,6 +14,32 @@ function App() {
   const [uploadComplete, setUploadComplete] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showChat, setShowChat] = useState(false);
+
+  // Keep backend alive
+  useEffect(() => {
+    const keepBackendAlive = () => {
+      fetch(`${API_BASE_URL}/health`)
+        .then(response => {
+          if (response.ok) {
+            console.log('✅ Backend is alive');
+          }
+        })
+        .catch(error => {
+          console.log('❌ Backend ping failed:', error);
+        });
+    };
+
+    // Ping immediately when app loads
+    keepBackendAlive();
+    
+    // Then ping every 3 minutes to keep it awake
+    const interval = setInterval(keepBackendAlive, 3 * 60 * 1000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, []);
+
+  // ... rest of your existing App.jsx code stays the same
 
   const handleTabChange = (tab) => {
     if (!isUploading) {
