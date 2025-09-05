@@ -2,8 +2,8 @@ from __future__ import annotations
 import io, os, base64, logging, json
 import fitz
 from typing import List
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from PIL import Image
 import pytesseract
@@ -18,13 +18,30 @@ from prompts import SYSTEM_NOTE_TAKING, USER_NOTE_TAKING
 # ---------------------------------------------------------
 app = FastAPI(title="Pic-to-Notes (A4F)")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # frontend dev server
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Custom CORS middleware
+@app.middleware("http")
+async def cors_handler(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Add CORS headers to every response
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    
+    return response
+
+# Handle OPTIONS requests explicitly
+@app.options("/{full_path:path}")
+async def options_handler(request: Request):
+    return JSONResponse(
+        content={"message": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # ---------------------------------------------------------
 # Logger
@@ -39,7 +56,7 @@ load_dotenv()
 A4F_BASE = os.getenv("A4F_BASE_URL", "https://api.a4f.co/v1")
 A4F_KEY = os.getenv("A4F_API_KEY", "")
 VISION_MODEL = os.getenv("A4F_VISION_MODEL", "provider-6/gpt-4o")
-CHAT_MODEL = os.getenv("A4F_CHAT_MODEL", "provider-6/gpt-4o")
+CHAT_MODEL = os.getenv("A4F_CHAT_MODEL", "provider-3/gpt-4")
 USE_LOCAL_OCR = os.getenv("USE_LOCAL_OCR", "1") == "1"
 
 client = OpenAI(api_key=A4F_KEY, base_url=A4F_BASE)
@@ -95,7 +112,7 @@ async def notes_from_image(image: UploadFile = File(...)):
                 strategy = "pdf_extract_failed"
 
         # --- Local OCR (for images only) ---
-        if not extracted_text.strip() and USE_LOCAL_OCR and image.content_type != "application/pdf":
+        if not extracted_text.strip() and image.content_type != "application/pdf":
             try:
                 pil_img = Image.open(io.BytesIO(raw_bytes))
                 extracted_text = pytesseract.image_to_string(pil_img)
@@ -104,43 +121,43 @@ async def notes_from_image(image: UploadFile = File(...)):
                 extracted_text = f"[OCR error: {e}]\n"
                 strategy = (strategy + "+local_ocr_failed") if strategy else "local_ocr_failed"
 
-        # --- Vision API fallback ---
-        if not extracted_text.strip():
-            b64 = base64.b64encode(raw_bytes).decode("utf-8")
-            data_url = f"data:{image.content_type or 'image/png'};base64,{b64}"
-            resp = client.chat.completions.create(
-                model=VISION_MODEL,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Extract all visible text verbatim from this image. Keep line breaks."},
-                            {"type": "image_url", "image_url": {"url": data_url}},
-                        ],
-                    }
-                ],
-                temperature=0,
-            )
-            extracted_text = (resp.choices[0].message.content or "").strip()
-            strategy = (strategy + "+vision_a4f") if strategy else "vision_a4f"
-
         if not extracted_text.strip():
             raise HTTPException(status_code=422, detail="Could not extract any text from the file")
 
         # --- RAG + Notes generation ---
-        kb = rag.topk_text(q=extracted_text or "9th class BISE GRW", k=5) or []
-        if isinstance(kb, str):   # sometimes it returns a string
-            kb = [kb]
+        kb = []
+        try:
+            kb = rag.topk_text(q=extracted_text or "9th class BISE GRW", k=5) or []
+            if isinstance(kb, str):   # sometimes it returns a string
+                kb = [kb]
+        except Exception as e:
+            logger.warning(f"RAG lookup failed: {e}")
+            kb = []
 
-        completion = client.chat.completions.create(
-            model=CHAT_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_NOTE_TAKING},
-                {"role": "user", "content": USER_NOTE_TAKING.format(content=extracted_text[:16000], kb_chunks=kb[:16000])},
-            ],
-            temperature=0.2,
-        )
-        raw_output = completion.choices[0].message.content or ""
+        try:
+            completion = client.chat.completions.create(
+                model=CHAT_MODEL,
+                messages=[
+                    {"role": "system", "content": SYSTEM_NOTE_TAKING},
+                    {"role": "user", "content": USER_NOTE_TAKING.format(content=extracted_text[:16000], kb_chunks=kb[:16000])},
+                ],
+                temperature=0.2,
+            )
+            raw_output = completion.choices[0].message.content or ""
+        except Exception as e:
+            logger.error(f"AI service unavailable: {e}")
+            # Fallback: return basic structured format with the extracted text
+            fallback_notes = {
+                "notes": [extracted_text],
+                "mcqs": [],
+                "shortQuestions": [],
+                "error": "AI service temporarily unavailable. Showing extracted text only."
+            }
+            return NotesResponse(
+                notes_md=json.dumps(fallback_notes, ensure_ascii=False, indent=2),
+                used_kb=kb,
+                strategy=strategy + "+ai_fallback",
+            )
 
         try:
             parsed = json.loads(raw_output)
@@ -176,26 +193,12 @@ async def notes_from_image(image: UploadFile = File(...)):
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_notes(req: ChatRequest):
     try:
-        kb = rag.topk_text(q=req.message, k=3) or []
-        completion = client.chat.completions.create(
-            model=CHAT_MODEL,
-            messages=[
-                {"role": "system", "content": "You are a helpful tutor. Answer questions clearly and concisely using the provided notes context."},
-                {"role": "user", "content": f"User question: {req.message}\n\nNOTES CONTEXT:\n{req.context}\n\nKB:\n{kb}"}
-            ],
-            temperature=0.3,
-        )
-        reply = completion.choices[0].message.content or "I couldn't generate a response."
-        return ChatResponse(reply=reply)
-    except Exception as e:
-        logger.error(f"chat_with_notes failed: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@app.post("/chat", response_model=ChatResponse)
-async def chat_with_notes(req: ChatRequest):
-    try:
-        kb = rag.topk_text(q=req.message, k=3) or []
+        kb = []
+        try:
+            kb = rag.topk_text(q=req.message, k=3) or []
+        except Exception as e:
+            logger.warning(f"RAG lookup failed in chat: {e}")
+            kb = []
         
         # Study-focused system prompt
         system_prompt = """You are a dedicated study assistant. You ONLY answer questions related to:
@@ -210,21 +213,37 @@ async def chat_with_notes(req: ChatRequest):
         
         Be helpful, clear, and concise in your explanations."""
         
-        completion = client.chat.completions.create(
-            model=CHAT_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"User question: {req.message}\n\nNOTES CONTEXT:\n{req.context}\n\nKB:\n{kb}"}
-            ],
-            temperature=0.3,
-        )
-        reply = completion.choices[0].message.content or "I couldn't generate a response."
-        return ChatResponse(reply=reply)
+        try:
+            completion = client.chat.completions.create(
+                model=CHAT_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"User question: {req.message}\n\nNOTES CONTEXT:\n{req.context}\n\nKB:\n{kb}"}
+                ],
+                temperature=0.3,
+            )
+            reply = completion.choices[0].message.content or "I couldn't generate a response."
+            return ChatResponse(reply=reply)
+        except Exception as e:
+            logger.error(f"AI service unavailable in chat: {e}")
+            # Fallback response when AI is down
+            fallback_reply = (
+                "I'm sorry, but the AI service is temporarily unavailable. "
+                "However, I can see your question is about: " + req.message + ". "
+                "Please try again in a few moments when the service is restored."
+            )
+            if req.context.strip():
+                fallback_reply += f"\n\nIn the meantime, here's the context from your notes:\n{req.context[:500]}..."
+            return ChatResponse(reply=fallback_reply)
     except Exception as e:
         logger.error(f"chat_with_notes failed: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return ChatResponse(reply="I'm sorry, there was an error processing your request. Please try again.")
 
 
 @app.get("/health")
 async def health():
     return {"ok": True}
+
+@app.get("/test-cors")
+async def test_cors():
+    return {"message": "CORS is working", "timestamp": "2025-01-01"}
