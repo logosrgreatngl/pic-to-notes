@@ -1,42 +1,44 @@
 from __future__ import annotations
 import json, os, uuid
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from openai import OpenAI
-
-# Store original proxy settings and clear them
-original_proxies = {}
-proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
-for var in proxy_vars:
-    if var in os.environ:
-        original_proxies[var] = os.environ[var]
-        del os.environ[var]
 
 A4F_BASE = os.getenv("A4F_BASE_URL", "https://api.a4f.co/v1")
 A4F_KEY = os.getenv("A4F_API_KEY", "")
 EMBED_MODEL = os.getenv("A4F_EMBED_MODEL", "provider-3/text-embedding-3-small")
 
-try:
-    # Try to initialize without any special configuration first
-    client = OpenAI(api_key=A4F_KEY, base_url=A4F_BASE)
-except TypeError as e:
-    if "proxies" in str(e):
-        # If that fails due to proxy issues, use httpx with trust_env=False
-        import httpx
-        http_client = httpx.Client(trust_env=False)
-        client = OpenAI(
-            api_key=A4F_KEY, 
-            base_url=A4F_BASE,
-            http_client=http_client
-        )
-    else:
-        raise
+# Global client variable - will be initialized when needed
+_client: Optional[object] = None
 
-# Restore original proxy settings for other parts of the application
-for var, value in original_proxies.items():
-    os.environ[var] = value
+def get_openai_client():
+    """Get OpenAI client, initializing it if needed"""
+    global _client
+    if _client is None:
+        # Clear proxy environment variables
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+        for var in proxy_vars:
+            if var in os.environ:
+                del os.environ[var]
+        
+        try:
+            from openai import OpenAI
+            _client = OpenAI(api_key=A4F_KEY, base_url=A4F_BASE)
+        except TypeError as e:
+            if "proxies" in str(e):
+                # Fallback with custom HTTP client
+                import httpx
+                from openai import OpenAI
+                http_client = httpx.Client(trust_env=False)
+                _client = OpenAI(
+                    api_key=A4F_KEY, 
+                    base_url=A4F_BASE,
+                    http_client=http_client
+                )
+            else:
+                raise
+    return _client
 
 @dataclass
 class DocChunk:
@@ -70,6 +72,7 @@ class SimpleRAG:
             json.dump(raw, f, ensure_ascii=False, indent=2)
 
     def _embed(self, texts: List[str]) -> List[List[float]]:
+        client = get_openai_client()
         resp = client.embeddings.create(model=EMBED_MODEL, input=texts)
         return [d.embedding for d in resp.data]
 
