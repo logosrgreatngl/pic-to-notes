@@ -6,9 +6,14 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
 
+# Clear proxy environment variables that Railway might set
+for proxy_var in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
+    if proxy_var in os.environ:
+        del os.environ[proxy_var]
+
 A4F_BASE = os.getenv("A4F_BASE_URL", "https://api.a4f.co/v1")
 A4F_KEY = os.getenv("A4F_API_KEY", "")
-EMBED_MODEL = os.getenv("A4F_EMBED_MODEL", "provider-2/text-embedding-3-small")
+EMBED_MODEL = os.getenv("A4F_EMBED_MODEL", "provider-3/text-embedding-3-small")
 
 client = OpenAI(api_key=A4F_KEY, base_url=A4F_BASE)
 
