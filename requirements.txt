@@ -10,10 +10,6 @@ pytesseract==0.3.10 # optional local OCR (requires system tesseract-ocr)
 openai==1.40.6 # official OpenAI SDK (compatible with A4F)
 python-dotenv==1.0.1
 scikit-learn==1.5.1 # cosine similarity
-// Add to backend: requirements.txt
 fastapi-users[sqlalchemy]
 python-jose[cryptography]
 passlib[bcrypt]
-
-// Create auth system with JWT tokens
-// Add user registration/login endpoints
