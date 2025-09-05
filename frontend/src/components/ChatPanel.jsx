@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { NotesContext } from '../NotesContext';
 import { API_BASE_URL } from '../config';
 
-function ChatPanel() {
+function ChatPanel({ isMobile = false }) {
   const { notesData } = useContext(NotesContext);
   const [messages, setMessages] = useState([
     {
@@ -86,33 +86,36 @@ function ChatPanel() {
   };
 
   return (
-    <aside className="flex flex-col w-full lg:w-[360px] bg-gray-800/60 rounded-2xl shadow-xl h-full lg:h-auto">
-      <div className="border-b border-gray-700 p-4">
-        <h3 className="text-lg font-bold leading-tight tracking-tight text-white">Study Assistant</h3>
-      </div>
-      
-      <div className="flex-1 space-y-4 sm:space-y-6 overflow-y-auto p-4 max-h-[60vh] lg:max-h-[70vh]">
+    <aside className={`flex flex-col bg-gray-800/60 rounded-2xl shadow-xl ${
+      isMobile 
+        ? 'w-full h-full rounded-none' 
+        : 'w-full lg:w-[360px] h-full lg:h-auto'
+    }`}>
+      {/* Messages area */}
+      <div className={`flex-1 space-y-4 overflow-y-auto p-4 ${
+        isMobile ? 'pb-safe' : ''
+      }`} style={{ maxHeight: isMobile ? 'calc(100vh - 140px)' : '70vh' }}>
         {messages.map((message) => (
           <div key={message.id} className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 h-8 sm:w-9 sm:h-9 shrink-0 ${
+            <div className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 h-8 shrink-0 ${
               message.type === 'system' || message.type === 'ai' ? 'bg-gray-700' : ''
             }`}>
               {(message.type === 'system' || message.type === 'ai') && (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-gray-400 text-lg sm:text-xl">school</span>
+                  <span className="material-symbols-outlined text-gray-400 text-lg">school</span>
                 </div>
               )}
               {message.type === 'user' && (
                 <div className="w-full h-full bg-yellow-400 rounded-full flex items-center justify-center">
-                  <span className="text-gray-900 font-bold text-xs sm:text-sm">U</span>
+                  <span className="text-gray-900 font-bold text-xs">U</span>
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-1.5 max-w-[80%] sm:max-w-[85%]">
-              <p className="text-xs sm:text-sm font-medium text-gray-400">
+            <div className="flex flex-col gap-1.5 max-w-[85%]">
+              <p className="text-xs font-medium text-gray-400">
                 {message.type === 'system' || message.type === 'ai' ? 'Study Assistant' : 'You'}
               </p>
-              <div className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-normal leading-normal break-words ${
+              <div className={`rounded-xl px-4 py-3 text-sm font-normal leading-normal break-words ${
                 message.type === 'user' 
                   ? 'bg-yellow-400 text-gray-900 rounded-tr-none' 
                   : 'bg-gray-700 text-white rounded-tl-none'
@@ -124,16 +127,16 @@ function ChatPanel() {
         ))}
         {isLoading && (
           <div className="flex items-start gap-3">
-            <div className="bg-gray-700 rounded-full w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
-              <span className="material-symbols-outlined text-gray-400 text-lg sm:text-xl">school</span>
+            <div className="bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center">
+              <span className="material-symbols-outlined text-gray-400 text-lg">school</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="text-xs sm:text-sm font-medium text-gray-400">Study Assistant</p>
-              <div className="bg-gray-700 rounded-xl rounded-tl-none px-3 sm:px-4 py-2 sm:py-2.5">
+              <p className="text-xs font-medium text-gray-400">Study Assistant</p>
+              <div className="bg-gray-700 rounded-xl rounded-tl-none px-4 py-3">
                 <div className="flex space-x-2">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                 </div>
               </div>
             </div>
@@ -142,10 +145,13 @@ function ChatPanel() {
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="border-t border-gray-700 p-4">
+      {/* Input area - MOBILE OPTIMIZED */}
+      <div className={`border-t border-gray-700 p-4 ${isMobile ? 'pb-safe' : ''}`}>
         <div className="relative">
           <input 
-            className="form-input w-full resize-none rounded-xl border-none bg-gray-700 py-3 pl-4 pr-12 text-sm sm:text-base text-white placeholder:text-gray-400 focus:ring-2 focus:ring-yellow-400"
+            className={`form-input w-full resize-none rounded-xl border-none bg-gray-700 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-yellow-400 ${
+              isMobile ? 'py-4 pl-4 pr-16 text-base' : 'py-3 pl-4 pr-12 text-sm'
+            }`}
             placeholder="Ask about your study material..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
@@ -153,7 +159,9 @@ function ChatPanel() {
             disabled={isLoading}
           />
           <button 
-            className="absolute inset-y-0 right-0 flex items-center justify-center px-4 text-gray-400 hover:text-yellow-400 transition-colors duration-200 disabled:opacity-50 tap-target"
+            className={`absolute inset-y-0 right-0 flex items-center justify-center text-gray-400 hover:text-yellow-400 transition-colors duration-200 disabled:opacity-50 ${
+              isMobile ? 'px-4 min-w-[60px]' : 'px-4'
+            }`}
             onClick={sendMessage}
             disabled={isLoading || !inputMessage.trim()}
           >

@@ -57,6 +57,20 @@ body {
   }
 }
 
+/* Mobile chat slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 /* Mobile-friendly touch targets */
 @media (max-width: 768px) {
   button, .cursor-pointer {
@@ -78,6 +92,11 @@ body {
   .tap-target {
     padding: 12px;
   }
+  
+  /* Safe area for mobile devices with notches */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 /* Additional mobile optimizations */
@@ -88,5 +107,25 @@ body {
   
   .mobile-full-width {
     width: 100%;
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Ensure mobile chat takes full screen */
+@media (max-width: 1024px) {
+  .mobile-chat-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
   }
 }

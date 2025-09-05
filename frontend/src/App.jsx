@@ -57,13 +57,13 @@ function App() {
               <h2 className="text-lg sm:text-xl font-bold tracking-[-0.015em]">Pic-to-Notes</h2>
             </div>
             
-            {/* Mobile chat toggle */}
+            {/* Mobile chat toggle - IMPROVED */}
             <button 
               onClick={() => setShowChat(!showChat)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="lg:hidden flex items-center gap-2 px-3 py-2 bg-yellow-400 text-gray-900 rounded-lg text-sm font-medium hover:bg-yellow-500 transition-colors min-h-[44px]"
             >
               <span className="material-symbols-outlined text-lg">chat</span>
-              <span className="hidden sm:inline">Chat</span>
+              <span className="font-semibold">Chat</span>
             </button>
             
             {/* Desktop upload button */}
@@ -88,7 +88,7 @@ function App() {
             ].map(tab => (
               <button
                 key={tab.key}
-                className={`flex flex-col items-center gap-1 px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`flex flex-col items-center gap-1 px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors min-h-[60px] ${
                   activeTab === tab.key 
                     ? 'text-yellow-400 border-b-2 border-yellow-400' 
                     : 'text-gray-400 hover:text-white'
@@ -125,9 +125,9 @@ function App() {
           </nav>
 
           {/* Main content area */}
-          <main className="flex flex-1 relative">
+          <main className="flex flex-1 relative overflow-hidden">
             {/* Page content */}
-            <div className="flex-1 p-4 sm:p-6 lg:p-8 lg:pr-8">
+            <div className="flex-1 p-4 sm:p-6 lg:p-8 lg:pr-8 overflow-y-auto">
               {renderPage()}
             </div>
             
@@ -135,27 +135,37 @@ function App() {
             <div className="hidden lg:block">
               <ChatPanel />
             </div>
-            
-            {/* Mobile chat overlay */}
-            {showChat && (
-              <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setShowChat(false)}>
-                <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-gray-900 shadow-xl" onClick={e => e.stopPropagation()}>
-                  <div className="flex items-center justify-between p-4 border-b border-gray-700">
-                    <h3 className="text-lg font-bold">Study Assistant</h3>
-                    <button 
-                      onClick={() => setShowChat(false)}
-                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                    >
-                      <span className="material-symbols-outlined">close</span>
-                    </button>
-                  </div>
-                  <div className="h-full overflow-hidden">
-                    <ChatPanel />
-                  </div>
+          </main>
+          
+          {/* Mobile chat overlay - COMPLETELY REDESIGNED */}
+          {showChat && (
+            <div className="lg:hidden fixed inset-0 z-50 flex">
+              {/* Backdrop */}
+              <div 
+                className="absolute inset-0 bg-black bg-opacity-50" 
+                onClick={() => setShowChat(false)}
+              ></div>
+              
+              {/* Chat panel - slides from bottom */}
+              <div className="relative w-full h-full flex flex-col bg-gray-900 animate-slide-up">
+                {/* Chat header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
+                  <h3 className="text-lg font-bold text-white">Study Assistant</h3>
+                  <button 
+                    onClick={() => setShowChat(false)}
+                    className="p-2 hover:bg-gray-700 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  >
+                    <span className="material-symbols-outlined text-white">close</span>
+                  </button>
+                </div>
+                
+                {/* Chat content */}
+                <div className="flex-1 overflow-hidden">
+                  <ChatPanel isMobile={true} />
                 </div>
               </div>
-            )}
-          </main>
+            </div>
+          )}
         </div>
       </div>
     </NotesProvider>
