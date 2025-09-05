@@ -39,7 +39,8 @@ function ChatPanel({ isMobile = false }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      // Use proxy-chat endpoint instead of chat
+      const response = await fetch(`${API_BASE_URL}/proxy-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +92,10 @@ function ChatPanel({ isMobile = false }) {
         ? 'w-full h-full rounded-none' 
         : 'w-full lg:w-[360px] h-full lg:h-auto'
     }`}>
-      {/* Messages area */}
+      <div className="border-b border-gray-700 p-4">
+        <h3 className="text-lg font-bold leading-tight tracking-tight text-white">Study Assistant</h3>
+      </div>
+      
       <div className={`flex-1 space-y-4 overflow-y-auto p-4 ${
         isMobile ? 'pb-safe' : ''
       }`} style={{ maxHeight: isMobile ? 'calc(100vh - 140px)' : '70vh' }}>
@@ -136,7 +140,7 @@ function ChatPanel({ isMobile = false }) {
                 <div className="flex space-x-2">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                 </div>
               </div>
             </div>
@@ -145,7 +149,6 @@ function ChatPanel({ isMobile = false }) {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input area - MOBILE OPTIMIZED */}
       <div className={`border-t border-gray-700 p-4 ${isMobile ? 'pb-safe' : ''}`}>
         <div className="relative">
           <input 
