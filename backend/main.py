@@ -10,7 +10,7 @@ import pytesseract
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from rag_store import SimpleRAG
+from backend.rag_store import SimpleRAG
 from prompts import SYSTEM_NOTE_TAKING, USER_NOTE_TAKING
 
 # ---------------------------------------------------------
