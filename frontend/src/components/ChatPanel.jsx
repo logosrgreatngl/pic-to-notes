@@ -1,82 +1,22 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { NotesContext } from '../NotesContext';
-import { API_BASE_URL } from '../config';
 
 function ChatPanel({ isMobile = false }) {
-  const { notesData } = useContext(NotesContext);
-  const [messages, setMessages] = useState([
+  const [inputMessage, setInputMessage] = useState('');
+  
+  // Show helpful message about chat being temporarily unavailable
+  const messages = [
     {
       id: 1,
       type: 'system',
-      text: 'Hi! I\'m your study assistant. Ask me anything about your notes or the topics you\'re studying.',
+      text: 'Chat is temporarily unavailable due to a technical issue. Your main features (Upload → Notes → MCQs → Short Questions) are working perfectly! 🚀\n\nFor now, you can:\n• Upload images to get structured notes\n• Generate MCQs for practice\n• Create short answer questions\n• Download your notes\n\nWe\'ll have chat working soon!',
       timestamp: new Date()
     }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  ];
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
-
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      text: inputMessage,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsLoading(true);
-
-    try {
-      // Use proxy-chat endpoint instead of chat
-      const response = await fetch(`${API_BASE_URL}/proxy-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputMessage,
-          context: notesData.rawText || ''
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-      
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        text: data.reply,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        text: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+  const sendMessage = () => {
+    // Show a helpful message instead of trying to send
+    alert('Chat is temporarily unavailable, but all your main features are working great! 📚\n\nTry uploading an image to see your notes, MCQs, and short questions.');
   };
 
   const handleKeyPress = (e) => {
@@ -94,79 +34,45 @@ function ChatPanel({ isMobile = false }) {
     }`}>
       <div className="border-b border-gray-700 p-4">
         <h3 className="text-lg font-bold leading-tight tracking-tight text-white">Study Assistant</h3>
+        <p className="text-xs text-yellow-400 mt-1">Temporarily unavailable</p>
       </div>
       
       <div className={`flex-1 space-y-4 overflow-y-auto p-4 ${
         isMobile ? 'pb-safe' : ''
       }`} style={{ maxHeight: isMobile ? 'calc(100vh - 140px)' : '70vh' }}>
         {messages.map((message) => (
-          <div key={message.id} className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 h-8 shrink-0 ${
-              message.type === 'system' || message.type === 'ai' ? 'bg-gray-700' : ''
-            }`}>
-              {(message.type === 'system' || message.type === 'ai') && (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-gray-400 text-lg">school</span>
-                </div>
-              )}
-              {message.type === 'user' && (
-                <div className="w-full h-full bg-yellow-400 rounded-full flex items-center justify-center">
-                  <span className="text-gray-900 font-bold text-xs">U</span>
-                </div>
-              )}
+          <div key={message.id} className="flex items-start gap-3">
+            <div className="bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center">
+              <span className="material-symbols-outlined text-yellow-400 text-lg">info</span>
             </div>
             <div className="flex flex-col gap-1.5 max-w-[85%]">
-              <p className="text-xs font-medium text-gray-400">
-                {message.type === 'system' || message.type === 'ai' ? 'Study Assistant' : 'You'}
-              </p>
-              <div className={`rounded-xl px-4 py-3 text-sm font-normal leading-normal break-words ${
-                message.type === 'user' 
-                  ? 'bg-yellow-400 text-gray-900 rounded-tr-none' 
-                  : 'bg-gray-700 text-white rounded-tl-none'
-              }`}>
+              <p className="text-xs font-medium text-gray-400">System</p>
+              <div className="bg-gray-700 rounded-xl rounded-tl-none px-4 py-3 text-sm font-normal leading-normal break-words text-white whitespace-pre-line">
                 {message.text}
               </div>
             </div>
           </div>
         ))}
-        {isLoading && (
-          <div className="flex items-start gap-3">
-            <div className="bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center">
-              <span className="material-symbols-outlined text-gray-400 text-lg">school</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-xs font-medium text-gray-400">Study Assistant</p>
-              <div className="bg-gray-700 rounded-xl rounded-tl-none px-4 py-3">
-                <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
       </div>
       
       <div className={`border-t border-gray-700 p-4 ${isMobile ? 'pb-safe' : ''}`}>
         <div className="relative">
           <input 
-            className={`form-input w-full resize-none rounded-xl border-none bg-gray-700 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-yellow-400 ${
+            className={`form-input w-full resize-none rounded-xl border-none bg-gray-600 text-gray-400 placeholder:text-gray-500 cursor-not-allowed ${
               isMobile ? 'py-4 pl-4 pr-16 text-base' : 'py-3 pl-4 pr-12 text-sm'
             }`}
-            placeholder="Ask about your study material..."
+            placeholder="Chat temporarily unavailable - main features working great!"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={isLoading}
+            disabled={true}
           />
           <button 
-            className={`absolute inset-y-0 right-0 flex items-center justify-center text-gray-400 hover:text-yellow-400 transition-colors duration-200 disabled:opacity-50 ${
+            className={`absolute inset-y-0 right-0 flex items-center justify-center text-gray-500 cursor-not-allowed ${
               isMobile ? 'px-4 min-w-[60px]' : 'px-4'
             }`}
             onClick={sendMessage}
-            disabled={isLoading || !inputMessage.trim()}
+            disabled={true}
           >
             <span className="material-symbols-outlined">send</span>
           </button>
