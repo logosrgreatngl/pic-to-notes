@@ -6,16 +6,37 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
 
-# Clear proxy environment variables that Railway might set
-for proxy_var in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
-    if proxy_var in os.environ:
-        del os.environ[proxy_var]
+# Store original proxy settings and clear them
+original_proxies = {}
+proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+for var in proxy_vars:
+    if var in os.environ:
+        original_proxies[var] = os.environ[var]
+        del os.environ[var]
 
 A4F_BASE = os.getenv("A4F_BASE_URL", "https://api.a4f.co/v1")
 A4F_KEY = os.getenv("A4F_API_KEY", "")
 EMBED_MODEL = os.getenv("A4F_EMBED_MODEL", "provider-3/text-embedding-3-small")
 
-client = OpenAI(api_key=A4F_KEY, base_url=A4F_BASE)
+try:
+    # Try to initialize without any special configuration first
+    client = OpenAI(api_key=A4F_KEY, base_url=A4F_BASE)
+except TypeError as e:
+    if "proxies" in str(e):
+        # If that fails due to proxy issues, use httpx with trust_env=False
+        import httpx
+        http_client = httpx.Client(trust_env=False)
+        client = OpenAI(
+            api_key=A4F_KEY, 
+            base_url=A4F_BASE,
+            http_client=http_client
+        )
+    else:
+        raise
+
+# Restore original proxy settings for other parts of the application
+for var, value in original_proxies.items():
+    os.environ[var] = value
 
 @dataclass
 class DocChunk:
