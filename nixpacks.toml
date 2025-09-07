@@ -1,2 +1,8 @@
 [phases.setup]
-nixPkgs = ["tesseract", "gcc", "python311"]
+nixPkgs = [
+  "tesseract",
+  "leptonica",
+  "libtesseract",
+  "gcc",
+  "python311"
+]
