@@ -99,30 +99,55 @@ async def notes_from_image(image: UploadFile = File(...)):
         extracted_text = ""
         strategy = ""
         raw_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Error reading uploaded image: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read uploaded image")
 
-        # --- If PDF, extract with PyMuPDF ---
-        if image.content_type == "application/pdf":
-            try:
-                with fitz.open(stream=raw_bytes, filetype="pdf") as doc:
-                    pages = [page.get_text("text") for page in doc]
-                extracted_text = "\n".join(pages).strip()
+# --- If PDF, extract with PyMuPDF ---
+if image.content_type == "application/pdf":
+        try:
+         with fitz.open(stream=raw_bytes, filetype="pdf") as doc:
+                pages = [page.get_text("text") for page in doc]
+            extracted_text = "\n".join(pages).strip()
                 strategy = "pdf_text+pymupdf"
-            except Exception as e:
+        except Exception as e:
                 extracted_text = f"[PDF extract error: {e}]\n"
                 strategy = "pdf_extract_failed"
 
-        # --- Local OCR (for images only) ---
+                # --- Local OCR (images only) ---
         if not extracted_text.strip() and image.content_type != "application/pdf":
-            try:
-                pil_img = Image.open(io.BytesIO(raw_bytes))
-                extracted_text = pytesseract.image_to_string(pil_img)
-                strategy = (strategy + "+local_ocr") if strategy else "local_ocr"
-            except Exception as e:
-                extracted_text = f"[OCR error: {e}]\n"
-                strategy = (strategy + "+local_ocr_failed") if strategy else "local_ocr_failed"
+            if USE_LOCAL_OCR:
+                try:
+                    pil_img = Image.open(io.BytesIO(raw_bytes))
+                    extracted_text = pytesseract.image_to_string(pil_img)
+                    strategy = (strategy + "+local_ocr") if strategy else "local_ocr"
+                except Exception as e:
+                    logger.warning(f"Local OCR failed: {e}")
+                    strategy = (strategy + "+local_ocr_failed") if strategy else "local_ocr_failed"
 
-        if not extracted_text.strip():
-            raise HTTPException(status_code=422, detail="Could not extract any text from the file")
+            # --- Vision API OCR fallback ---
+            if not extracted_text.strip():
+                try:
+                    b64_image = base64.b64encode(raw_bytes).decode("utf-8")
+                    vision_resp = client.chat.completions.create(
+                        model=VISION_MODEL,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "input_text", "text": "Extract all readable text from this image for study notes:"},
+                                    {"type": "input_image", "image_data": b64_image}
+                                ],
+                            }
+                        ],
+                    )
+                    extracted_text = vision_resp.choices[0].message.content or ""
+                    strategy = (strategy + "+vision_ocr") if strategy else "vision_ocr"
+                except Exception as e:
+                    logger.error(f"Vision OCR failed: {e}")
+                    extracted_text = f"[Vision OCR error: {e}]\n"
+                    strategy = (strategy + "+vision_ocr_failed") if strategy else "vision_ocr_failed"
+, detail="Could not extract any text from the file")
 
         # --- RAG + Notes generation ---
         kb = []
