@@ -103,116 +103,111 @@ async def notes_from_image(image: UploadFile = File(...)):
         logger.error(f"Error reading uploaded image: {e}")
         raise HTTPException(status_code=500, detail="Failed to read uploaded image")
 
-# --- If PDF, extract with PyMuPDF ---
-if image.content_type == "application/pdf":
+    # --- If PDF, extract with PyMuPDF ---
+    if image.content_type == "application/pdf":
         try:
-         with fitz.open(stream=raw_bytes, filetype="pdf") as doc:
+            with fitz.open(stream=raw_bytes, filetype="pdf") as doc:
                 pages = [page.get_text("text") for page in doc]
             extracted_text = "\n".join(pages).strip()
-                strategy = "pdf_text+pymupdf"
+            strategy = "pdf_text+pymupdf"
         except Exception as e:
-                extracted_text = f"[PDF extract error: {e}]\n"
-                strategy = "pdf_extract_failed"
+            extracted_text = f"[PDF extract error: {e}]\n"
+            strategy = "pdf_extract_failed"
 
-                # --- Local OCR (images only) ---
-        if not extracted_text.strip() and image.content_type != "application/pdf":
-            if USE_LOCAL_OCR:
-                try:
-                    pil_img = Image.open(io.BytesIO(raw_bytes))
-                    extracted_text = pytesseract.image_to_string(pil_img)
-                    strategy = (strategy + "+local_ocr") if strategy else "local_ocr"
-                except Exception as e:
-                    logger.warning(f"Local OCR failed: {e}")
-                    strategy = (strategy + "+local_ocr_failed") if strategy else "local_ocr_failed"
+    # --- Local OCR (images only) ---
+    if not extracted_text.strip() and image.content_type != "application/pdf":
+        if USE_LOCAL_OCR:
+            try:
+                pil_img = Image.open(io.BytesIO(raw_bytes))
+                extracted_text = pytesseract.image_to_string(pil_img)
+                strategy = (strategy + "+local_ocr") if strategy else "local_ocr"
+            except Exception as e:
+                logger.warning(f"Local OCR failed: {e}")
+                strategy = (strategy + "+local_ocr_failed") if strategy else "local_ocr_failed"
 
-            # --- Vision API OCR fallback ---
-            if not extracted_text.strip():
-                try:
-                    b64_image = base64.b64encode(raw_bytes).decode("utf-8")
-                    vision_resp = client.chat.completions.create(
-                        model=VISION_MODEL,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "input_text", "text": "Extract all readable text from this image for study notes:"},
-                                    {"type": "input_image", "image_data": b64_image}
-                                ],
-                            }
-                        ],
-                    )
-                    extracted_text = vision_resp.choices[0].message.content or ""
-                    strategy = (strategy + "+vision_ocr") if strategy else "vision_ocr"
-                except Exception as e:
-                    logger.error(f"Vision OCR failed: {e}")
-                    extracted_text = f"[Vision OCR error: {e}]\n"
-                    strategy = (strategy + "+vision_ocr_failed") if strategy else "vision_ocr_failed"
-, detail="Could not extract any text from the file")
-
-        # --- RAG + Notes generation ---
-        kb = []
+    # --- Vision API OCR fallback ---
+    if not extracted_text.strip():
         try:
-            kb = rag.topk_text(q=extracted_text or "9th class BISE GRW", k=5) or []
-            if isinstance(kb, str):   # sometimes it returns a string
-                kb = [kb]
-        except Exception as e:
-            logger.warning(f"RAG lookup failed: {e}")
-            kb = []
-
-        try:
-            completion = client.chat.completions.create(
-                model=CHAT_MODEL,
+            b64_image = base64.b64encode(raw_bytes).decode("utf-8")
+            vision_resp = client.chat.completions.create(
+                model=VISION_MODEL,
                 messages=[
-                    {"role": "system", "content": SYSTEM_NOTE_TAKING},
-                    {"role": "user", "content": USER_NOTE_TAKING.format(content=extracted_text[:16000], kb_chunks=kb[:16000])},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": "Extract all readable text from this image for study notes:"},
+                            {"type": "input_image", "image_data": b64_image}
+                        ],
+                    }
                 ],
-                temperature=0.2,
             )
-            raw_output = completion.choices[0].message.content or ""
+            extracted_text = vision_resp.choices[0].message.content or ""
+            strategy = (strategy + "+vision_ocr") if strategy else "vision_ocr"
         except Exception as e:
-            logger.error(f"AI service unavailable: {e}")
-            # Fallback: return basic structured format with the extracted text
-            fallback_notes = {
-                "notes": [extracted_text],
-                "mcqs": [],
-                "shortQuestions": [],
-                "error": "AI service temporarily unavailable. Showing extracted text only."
-            }
-            return NotesResponse(
-                notes_md=json.dumps(fallback_notes, ensure_ascii=False, indent=2),
-                used_kb=kb,
-                strategy=strategy + "+ai_fallback",
-            )
+            logger.error(f"Vision OCR failed: {e}")
+            extracted_text = f"[Vision OCR error: {e}]\n"
+            strategy = (strategy + "+vision_ocr_failed") if strategy else "vision_ocr_failed"
 
-        try:
-            parsed = json.loads(raw_output)
-        except Exception as e:
-            logger.warning(f"Could not parse model output as JSON: {e}")
-            parsed = {}
+    # --- RAG + Notes generation ---
+    kb = []
+    try:
+        kb = rag.topk_text(q=extracted_text or "9th class BISE GRW", k=5) or []
+        if isinstance(kb, str):   # sometimes it returns a string
+            kb = [kb]
+    except Exception as e:
+        logger.warning(f"RAG lookup failed: {e}")
+        kb = []
 
-        if isinstance(parsed, dict):
-            if "short_questions" in parsed:
-                parsed["shortQuestions"] = parsed.pop("short_questions")
-            if "ShortQuestions" in parsed:
-                parsed["shortQuestions"] = parsed.pop("ShortQuestions")
-            if "Shortquestions" in parsed:
-                parsed["shortQuestions"] = parsed.pop("Shortquestions")
-
-            parsed.setdefault("notes", [])
-            parsed.setdefault("mcqs", [])
-            parsed.setdefault("shortQuestions", [])
-        else:
-            parsed = {"notes": [], "mcqs": [], "shortQuestions": []}
-
+    try:
+        completion = client.chat.completions.create(
+            model=CHAT_MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_NOTE_TAKING},
+                {"role": "user", "content": USER_NOTE_TAKING.format(content=extracted_text[:16000], kb_chunks=kb[:16000])},
+            ],
+            temperature=0.2,
+        )
+        raw_output = completion.choices[0].message.content or ""
+    except Exception as e:
+        logger.error(f"AI service unavailable: {e}")
+        # Fallback: return basic structured format with the extracted text
+        fallback_notes = {
+            "notes": [extracted_text],
+            "mcqs": [],
+            "shortQuestions": [],
+            "error": "AI service temporarily unavailable. Showing extracted text only."
+        }
         return NotesResponse(
-            notes_md=json.dumps(parsed, ensure_ascii=False, indent=2),
+            notes_md=json.dumps(fallback_notes, ensure_ascii=False, indent=2),
             used_kb=kb,
-            strategy=strategy,
+            strategy=strategy + "+ai_fallback",
         )
 
+    try:
+        parsed = json.loads(raw_output)
     except Exception as e:
-        logger.error(f"notes_from_image failed: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.warning(f"Could not parse model output as JSON: {e}")
+        parsed = {}
+
+    if isinstance(parsed, dict):
+        if "short_questions" in parsed:
+            parsed["shortQuestions"] = parsed.pop("short_questions")
+        if "ShortQuestions" in parsed:
+            parsed["shortQuestions"] = parsed.pop("ShortQuestions")
+        if "Shortquestions" in parsed:
+            parsed["shortQuestions"] = parsed.pop("Shortquestions")
+
+        parsed.setdefault("notes", [])
+        parsed.setdefault("mcqs", [])
+        parsed.setdefault("shortQuestions", [])
+    else:
+        parsed = {"notes": [], "mcqs": [], "shortQuestions": []}
+
+    return NotesResponse(
+        notes_md=json.dumps(parsed, ensure_ascii=False, indent=2),
+        used_kb=kb,
+        strategy=strategy,
+    )
 
 
 @app.post("/chat", response_model=ChatResponse)
